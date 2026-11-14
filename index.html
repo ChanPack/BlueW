@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>스텔라이브 목소리 맞추기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light;--bg:#fff;--soft:#F2F3F5;--line:#DFE1E6;--text:#363A42;--muted:#666B76;--accent:#FF6F61;--on-accent:#23252B;--accent-text:#C93A2C}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--bg:#17181B;--soft:#24262B;--line:#363940;--text:#E4E6EA;--muted:#A0A5B0;--accent:#FF8578;--on-accent:#1B1C20;--accent-text:#FF8F83}}
+:root[data-theme=dark]{color-scheme:dark;--bg:#17181B;--soft:#24262B;--line:#363940;--text:#E4E6EA;--muted:#A0A5B0;--accent:#FF8578;--on-accent:#1B1C20;--accent-text:#FF8F83}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;-webkit-text-size-adjust:100%;background:var(--bg);color:var(--text);font:400 16px/1.6 "Noto Sans KR",sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:0 20px}
+.top{background:var(--soft);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.top .wrap{display:flex;justify-content:space-between;align-items:center;height:56px}
+.brand{font:400 20px "Black Han Sans",sans-serif}
+main{flex:1;width:100%;padding-top:32px;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+main.mid{display:flex;flex-direction:column;justify-content:center}
+h1{font:400 40px/1.2 "Black Han Sans","Noto Sans KR",sans-serif;margin:0 0 12px}
+h2{font-size:16px;margin:20px 0 8px}
+h2:first-child{margin-top:0}
+p{margin:0 0 16px}
+a{color:var(--accent-text)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+:focus-visible{outline:3px solid var(--accent-text);outline-offset:2px}
+.primary{background:var(--accent);color:var(--on-accent);border:0;border-radius:10px;padding:12px 24px;min-height:48px;font-weight:700}
+.primary:disabled{opacity:.5;cursor:default}
+.ghost{background:transparent;border:1px solid var(--line);border-radius:10px;padding:8px 16px;min-height:44px}
+.ghost:hover{background:var(--soft)}
+.card{background:var(--soft);border-radius:14px;padding:20px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:8px 18px;min-height:44px}
+.chip[aria-pressed=true]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);font-weight:700}
+.chip:disabled{opacity:.4;cursor:default}
+.custom{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+input[type=number],input[type=text]{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;min-height:48px;width:100%}
+input[type=number]{width:110px}
+.start{margin-top:24px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.meta{display:flex;justify-content:space-between;font-weight:700;margin-bottom:12px}
+.video{position:relative;aspect-ratio:16/9;min-height:200px;background:var(--soft);border-radius:14px;overflow:hidden;margin-bottom:12px}
+.video iframe{position:absolute;inset:0;width:100%;height:100%}
+.cover{position:absolute;inset:0;z-index:2;background:var(--soft);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
+.revealed .cover{display:none}
+.wave{display:flex;gap:4px;align-items:center;height:80px;width:70%}
+.bar{flex:1;height:var(--h);background:var(--accent);border-radius:3px;opacity:.45}
+.playing .bar{opacity:1;animation:pulse .7s ease-in-out infinite alternate;animation-delay:var(--d)}
+@keyframes pulse{from{transform:scaleY(.3)}to{transform:scaleY(1.2)}}
+@media (prefers-reduced-motion:reduce){.playing .bar{animation:none}}
+.cover p{margin:0;color:var(--muted)}
+#ans{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+#guess{flex:1;min-width:180px}
+.result{background:var(--soft);border-radius:14px;padding:16px 20px;margin:16px 0}
+.result.ok{box-shadow:inset 4px 0 0 var(--accent)}
+.result strong{font-size:20px}
+.result a{word-break:break-all}
+.score{font:400 88px/1 "Black Han Sans",sans-serif;color:var(--accent-text);margin:8px 0 16px}
+.note{font-size:14px;color:var(--muted);margin-top:12px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+.rank{list-style:none;margin:0 0 16px;padding:0}
+.rank li{display:grid;grid-template-columns:32px 1fr auto;gap:8px;align-items:center;padding:12px 16px;background:var(--soft);border-radius:10px;margin-bottom:6px}
+.rank li.me{box-shadow:inset 4px 0 0 var(--accent)}
+.rank .n{font-weight:700;color:var(--muted)}
+.rank .s{font-weight:700;white-space:nowrap}
+@media (max-width:480px){.wrap{padding:0 16px}h1{font-size:32px}.score{font-size:72px}#ans .primary,#ans .ghost{flex:1}#end .row button{flex:1 1 100%}.chips{gap:6px}}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <span class="brand">스텔라이브 목소리 맞추기</span>
+  <button class="ghost" id="theme" type="button">다크 모드</button>
+</div></header>
+
+<main class="wrap mid">
+  <section id="intro">
+    <h1>누구 목소리일까요?</h1>
+    <p>노래 한 구간을 듣고 가수를 입력하세요. 답을 내면 노래 영상이 재생돼요.</p>
+    <div class="card">
+      <h2>닉네임</h2>
+      <input type="text" id="nick" maxlength="12" placeholder="순위표에 보여줄 이름 (최대 12자)" autocomplete="off">
+      <h2>문제 수</h2>
+      <div class="chips" id="counts"></div>
+      <label class="custom">직접 입력 <input type="number" id="custom" min="1" inputmode="numeric"><span id="maxnote"></span></label>
+      <h2 style="margin-top:20px">들려줄 길이</h2>
+      <div class="chips" id="lens"></div>
+      <div class="row start"><button class="primary" id="start" disabled>불러오는 중</button><button class="ghost" id="board" type="button">순위 보기</button></div>
+    </div>
+    <p class="note" id="msg" role="status"></p>
+  </section>
+
+  <section id="game" hidden>
+    <div class="meta"><span id="round"></span><span id="score"></span></div>
+    <div class="video" id="video">
+      <div id="yt"></div>
+      <div class="cover"><div class="wave" id="wave" aria-hidden="true"></div><p>누구 목소리일까요?</p></div>
+    </div>
+    <div class="row" id="tools"><button class="ghost" id="replay" type="button">다시 듣기</button><button class="ghost" id="reroll" type="button">다른 구간</button></div>
+    <form id="ans">
+      <label for="guess" class="sr">정답</label>
+      <input type="text" id="guess" placeholder="가수 이름을 입력하세요" autocomplete="off" enterkeyhint="done">
+      <button class="primary" type="submit">제출</button>
+      <button class="ghost" type="button" id="skip">모르겠어요</button>
+    </form>
+    <div class="result" id="result" hidden></div>
+    <button class="primary" id="next" hidden>다음 문제</button>
+  </section>
+
+  <section id="end" hidden>
+    <h1>결과</h1>
+    <div class="score" id="final"></div>
+    <p id="comment"></p>
+    <p class="note" id="saved" role="status"></p>
+    <div class="row">
+      <button class="primary" id="kakao">카카오톡 공유</button>
+      <button class="ghost" id="toRank">순위 보기</button>
+      <button class="ghost" id="save">이미지로 저장</button>
+      <button class="ghost" id="again">다시 하기</button>
+    </div>
+  </section>
+<section id="rank" hidden>
+    <h1>순위</h1>
+    <p class="note" id="ranknote" role="status"></p>
+    <ol class="rank" id="rows"></ol>
+    <button class="ghost" id="rankBack" type="button">돌아가기</button>
+  </section>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+// 카카오톡 공유를 쓰려면 카카오 개발자 사이트의 JavaScript 키를 여기에 넣으세요. 비워두면 기기의 공유 창이나 링크 복사로 대신해요.
+const KAKAO_KEY = "";
+
+// 순위표(Supabase) 설정. 둘 다 비워두면 순위 기능은 꺼져 있어요. Project URL과 anon public 키를 넣으세요.
+const SB_URL = "https://qwoovktfdlradjzvluxc.supabase.co";
+const SB_KEY = "sb_publishable_LHPxVN5OQanl23-OV83WMQ_pyLnjiQs";
+const sb = (path, opt = {}) => fetch(SB_URL + "/rest/v1/" + path, {
+  ...opt,
+  headers: { apikey: SB_KEY, ...(SB_KEY.startsWith("eyJ") ? { Authorization: "Bearer " + SB_KEY } : {}), "Content-Type": "application/json", ...(opt.headers || {}) }
+});
+
+const $ = s => document.querySelector(s);
+let videos = [], picks = [], cur = null, round = 0, score = 0, locked = true;
+let player = null, playerReady = false, dataReady = false;
+const sel = { count: 10, len: 10 };
+
+// ---------- 화면 모드 ----------
+const root = document.documentElement;
+function applyTheme(t) {
+  if (t) root.dataset.theme = t;
+  const dark = root.dataset.theme === "dark" ||
+    (!root.dataset.theme && matchMedia("(prefers-color-scheme:dark)").matches);
+  $("#theme").textContent = dark ? "라이트 모드" : "다크 모드";
+  $("#theme").dataset.dark = dark;
+}
+try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+applyTheme();
+$("#theme").addEventListener("click", () => {
+  const next = $("#theme").dataset.dark === "true" ? "light" : "dark";
+  applyTheme(next);
+  try { localStorage.setItem("theme", next); } catch (e) {}
+});
+
+function toast(text) {
+  const t = $("#toast");
+  t.textContent = text; t.classList.add("on");
+  setTimeout(() => t.classList.remove("on"), 2200);
+}
+
+// ---------- 정답 판정 ----------
+const norm = s => String(s).toLowerCase().replace(/[^0-9a-z가-힣ぁ-ゟ゠-ヿ一-龯]/g, "");
+function fit(s, parts) {
+  if (!parts.length) return s === "";
+  return parts.some((p, i) => p.some(a => a && s.startsWith(a) &&
+    fit(s.slice(a.length), parts.filter((_, j) => j !== i))));
+}
+function isCorrect(input, v) {
+  const n = norm(input);
+  if (!n) return false;
+  if ((v.accept || []).some(a => norm(a) === n)) return true;
+  return v.parts && v.parts.length ? fit(n, v.parts.map(p => p.map(norm))) : false;
+}
+
+// ---------- 시작 화면 ----------
+function chips(el, items, onPick) {
+  el.innerHTML = "";
+  items.forEach(it => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.textContent = it.label;
+    b.disabled = !!it.disabled; b.dataset.v = it.value;
+    b.addEventListener("click", () => onPick(it.value));
+    el.appendChild(b);
+  });
+}
+function mark(el, value) {
+  el.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === String(value))));
+}
+function setupStart() {
+  const max = videos.length;
+  const list = [10, 20, 30, 50].map(n => ({ label: n + "문제", value: n, disabled: n > max }));
+  if (![10, 20, 30, 50].includes(max)) list.push({ label: "전체 " + max, value: max });
+  chips($("#counts"), list, n => { sel.count = n; $("#custom").value = ""; mark($("#counts"), n); });
+  $("#custom").max = max;
+  $("#maxnote").textContent = "최대 " + max + "문제";
+  sel.count = Math.min(10, max);
+  mark($("#counts"), sel.count);
+}
+chips($("#lens"), [5, 10, 15, 0].map(n => ({ label: n ? n + "초" : "무제한", value: n })), n => { sel.len = n; mark($("#lens"), n); });
+mark($("#lens"), sel.len);
+$("#custom").addEventListener("input", e => {
+  let n = parseInt(e.target.value, 10);
+  if (!n) return;
+  n = Math.max(1, Math.min(n, videos.length));
+  e.target.value = n; sel.count = n; mark($("#counts"), "none");
+});
+
+fetch("videos.json").then(r => r.json()).then(list => {
+  videos = list.filter(v => ((v.parts && v.parts.length) || (v.accept && v.accept.length)) && v.duration > 20);
+  dataReady = true;
+  if (!videos.length) {
+    $("#start").textContent = "영상 없음";
+    $("#msg").textContent = "문제로 쓸 영상이 없어요. make_videos.py를 실행해 videos.json을 만들어 주세요.";
+  } else setupStart();
+  ready();
+}).catch(() => {
+  $("#msg").textContent = "videos.json을 불러오지 못했어요. index.html과 같은 폴더에 있는지 확인해 주세요.";
+});
+
+// ---------- 유튜브 ----------
+const tag = document.createElement("script");
+tag.src = "https://www.youtube.com/iframe_api";
+document.head.appendChild(tag);
+window.onYouTubeIframeAPIReady = () => {
+  player = new YT.Player("yt", {
+    width: "100%", height: "100%",
+    playerVars: { controls: 1, disablekb: 1, playsinline: 1, rel: 0, modestbranding: 1 },
+    events: {
+      onReady: () => { playerReady = true; ready(); },
+      onStateChange: e => $("#video").classList.toggle("playing", e.data === 1),
+      onError: skipBroken
+    }
+  });
+};
+function ready() {
+  if (playerReady && dataReady && videos.length) {
+    $("#start").disabled = false;
+    $("#start").textContent = "시작하기";
+  }
+}
+
+// 파형 막대
+for (let i = 0; i < 24; i++) {
+  const b = document.createElement("span");
+  b.className = "bar";
+  b.style.setProperty("--h", (30 + Math.random() * 70) + "%");
+  b.style.setProperty("--d", (i * 0.05) + "s");
+  $("#wave").appendChild(b);
+}
+
+// ---------- 게임 진행 ----------
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function show(id) {
+  ["intro", "game", "end", "rank"].forEach(s => { $("#" + s).hidden = s !== id; });
+  $("main").classList.toggle("mid", id !== "game");
+  window.scrollTo(0, 0);
+}
+
+function play() {
+  // 전주와 후주를 피해 곡의 중간쪽(25~70%)에서 고르고, videos.json에 start(초)가 있으면 그 값을 써요.
+  const lo = Math.floor(cur.duration * 0.25);
+  const hi = Math.max(lo, Math.floor(cur.duration * 0.7) - (sel.len || 15));
+  if (cur.start === undefined) cur.start = lo + Math.floor(Math.random() * (hi - lo + 1));
+  const opts = { videoId: cur.id, startSeconds: cur.start };
+  if (sel.len) opts.endSeconds = cur.start + sel.len;
+  player.loadVideoById(opts);
+}
+
+let nick = "", saved = false, rankFrom = "intro";
+const getNick = () => $("#nick").value.trim().slice(0, 12);
+try { $("#nick").value = localStorage.getItem("nick") || ""; } catch (e) {}
+
+function startGame() {
+  nick = getNick();
+  if (!nick) { toast("닉네임을 입력해 주세요."); $("#nick").focus(); return; }
+  try { localStorage.setItem("nick", nick); } catch (e) {}
+  saved = false;
+  picks = shuffle(videos.slice()).slice(0, sel.count).map(v => ({ ...v }));
+  round = 0; score = 0;
+  show("game");
+  nextRound();
+}
+
+function nextRound() {
+  if (round >= picks.length) return finish();
+  cur = picks[round++];
+  locked = false;
+  $("#video").classList.remove("revealed");
+  $("#result").hidden = true; $("#next").hidden = true;
+  $("#tools").hidden = false;
+  $("#guess").value = ""; $("#guess").disabled = false;
+  $("#ans").hidden = false;
+  $("#round").textContent = round + " / " + picks.length;
+  $("#score").textContent = "점수 " + score;
+  play();
+  if (!matchMedia("(pointer:coarse)").matches) $("#guess").focus();
+}
+
+function reveal(guess) {
+  if (locked) return;
+  locked = true;
+  const ok = guess !== null && isCorrect(guess, cur);
+  if (ok) score++;
+  $("#score").textContent = "점수 " + score;
+  $("#ans").hidden = true; $("#tools").hidden = true;
+  $("#video").classList.add("revealed");
+  if (sel.len || player.getPlayerState() !== 1) player.loadVideoById({ videoId: cur.id, startSeconds: cur.start });
+
+  const box = $("#result");
+  box.className = "result" + (ok ? " ok" : "");
+  box.innerHTML = "";
+  const head = document.createElement("strong");
+  head.textContent = ok ? "정답이에요 +1점" : "오답이에요";
+  const ans = document.createElement("div");
+  ans.textContent = "정답: " + cur.answer;
+  box.append(head, ans);
+  if (!ok && guess) {
+    const mine = document.createElement("div");
+    mine.textContent = "내 답: " + guess;
+    box.appendChild(mine);
+  }
+  const a = document.createElement("a");
+  a.href = "https://www.youtube.com/watch?v=" + cur.id;
+  a.target = "_blank"; a.rel = "noopener"; a.textContent = cur.title;
+  const wrap = document.createElement("div");
+  wrap.appendChild(a);
+  box.appendChild(wrap);
+  box.hidden = false;
+  $("#next").textContent = round >= picks.length ? "결과 보기" : "다음 문제";
+  $("#next").hidden = false;
+  $("#next").focus();
+}
+
+function skipBroken() {
+  if (!cur || locked) return;
+  picks.splice(round - 1, 1);
+  round--;
+  nextRound();
+}
+
+function finish() {
+  show("end");
+  $("#final").textContent = score + " / " + picks.length;
+  const r = score / Math.max(1, picks.length);
+  $("#comment").textContent = r >= 0.8 ? "목소리만 듣고도 다 알아보시네요." :
+    r >= 0.5 ? "절반 이상 맞혔어요. 한 번 더 도전해 보세요." : "다시 들으면 더 잘 맞힐 수 있어요.";
+  submitScore();
+}
+
+// ---------- 순위 ----------
+async function submitScore() {
+  const note = $("#saved");
+  if (!SB_URL) { note.textContent = "순위 서버가 연결되지 않아 기록은 저장되지 않아요."; return; }
+  if (picks.length < 10) { note.textContent = "10문제 이상 풀어야 순위에 올라가요."; return; }
+  if (saved) return;
+  saved = true;
+  note.textContent = "기록을 등록하는 중이에요.";
+  try {
+    const r = await sb("scores", { method: "POST", headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ nickname: nick, score, total: picks.length, clip_len: sel.len }) });
+    if (!r.ok) throw new Error();
+    note.textContent = "순위에 기록을 등록했어요.";
+  } catch (e) {
+    saved = false;
+    note.textContent = "기록을 등록하지 못했어요. 잠시 뒤 다시 시도해 주세요.";
+  }
+}
+
+async function showRank(from) {
+  rankFrom = from; show("rank");
+  const ol = $("#rows"), note = $("#ranknote");
+  ol.innerHTML = "";
+  if (!SB_URL) { note.textContent = "순위 서버가 아직 연결되지 않았어요."; return; }
+  note.textContent = "불러오는 중이에요.";
+  try {
+    const r = await sb("scores?select=nickname,score,total&total=gte.10&order=rate.desc,total.desc,created_at.asc&limit=20");
+    if (!r.ok) throw new Error();
+    const rows = await r.json();
+    note.textContent = rows.length ? "정답률 순이에요. 10문제 이상만 올라가요." : "아직 기록이 없어요. 첫 기록을 남겨보세요.";
+    rows.forEach((x, i) => {
+      const li = document.createElement("li");
+      if (x.nickname === getNick()) li.className = "me";
+      const a = document.createElement("span"); a.className = "n"; a.textContent = i + 1;
+      const b = document.createElement("span"); b.textContent = x.nickname;
+      const c = document.createElement("span"); c.className = "s"; c.textContent = x.score + " / " + x.total;
+      li.append(a, b, c); ol.appendChild(li);
+    });
+  } catch (e) { note.textContent = "순위를 불러오지 못했어요."; }
+}
+
+// ---------- 공유 ----------
+function shareText() { return (nick ? nick + "님의 " : "") + "스텔라이브 목소리 맞추기 " + score + " / " + picks.length + "점! 나도 도전해보기"; }
+function shareUrl() { return location.href.split("#")[0]; }
+async function shareKakao() {
+  const text = shareText(), url = shareUrl();
+  if (KAKAO_KEY) {
+    try {
+      if (!window.Kakao) {
+        await new Promise((res, rej) => {
+          const s = document.createElement("script");
+          s.src = "https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js";
+          s.onload = res; s.onerror = rej; document.head.appendChild(s);
+        });
+      }
+      if (!Kakao.isInitialized()) Kakao.init(KAKAO_KEY);
+      Kakao.Share.sendDefault({ objectType: "text", text, link: { mobileWebUrl: url, webUrl: url } });
+      return;
+    } catch (e) { /* 아래 방법으로 대신해요 */ }
+  }
+  if (navigator.share) {
+    try { await navigator.share({ text, url }); return; } catch (e) { if (e.name === "AbortError") return; }
+  }
+  try { await navigator.clipboard.writeText(text + " " + url); toast("복사했어요. 카카오톡에 붙여넣어 주세요."); }
+  catch (e) { toast("공유하지 못했어요. 주소창의 링크를 직접 복사해 주세요."); }
+}
+
+async function saveImage() {
+  try { await document.fonts.load('80px "Black Han Sans"'); } catch (e) {}
+  const c = document.createElement("canvas");
+  c.width = 1080; c.height = 1080;
+  const g = c.getContext("2d");
+  const css = getComputedStyle(root), v = n => css.getPropertyValue(n).trim();
+  g.fillStyle = v("--bg"); g.fillRect(0, 0, 1080, 1080);
+  g.fillStyle = v("--soft"); g.fillRect(0, 0, 1080, 140);
+  g.fillStyle = v("--text"); g.textAlign = "left";
+  g.font = '400 48px "Black Han Sans", sans-serif';
+  g.fillText("스텔라이브 목소리 맞추기", 64, 88);
+  g.textAlign = "right"; g.font = '700 36px "Noto Sans KR", sans-serif';
+  g.fillText(nick, 1016, 88, 320); g.textAlign = "left";
+  g.textAlign = "center";
+  g.fillStyle = v("--accent-text");
+  g.font = '400 240px "Black Han Sans", sans-serif';
+  g.fillText(score + " / " + picks.length, 540, 560);
+  g.fillStyle = v("--text");
+  g.font = '700 48px "Noto Sans KR", sans-serif';
+  g.fillText($("#comment").textContent, 540, 720, 960);
+  g.fillStyle = v("--muted");
+  g.font = '400 32px "Noto Sans KR", sans-serif';
+  g.fillText(shareUrl(), 540, 980, 960);
+  const a = document.createElement("a");
+  a.href = c.toDataURL("image/png");
+  a.download = "stellive-quiz-result.png";
+  a.click();
+  toast("결과 이미지를 저장했어요.");
+}
+
+// ---------- 이벤트 ----------
+$("#start").addEventListener("click", startGame);
+$("#again").addEventListener("click", () => show("intro"));
+$("#next").addEventListener("click", nextRound);
+$("#replay").addEventListener("click", () => { if (cur && !locked) play(); });
+$("#reroll").addEventListener("click", () => { if (cur && !locked) { cur.start = undefined; play(); } });
+$("#skip").addEventListener("click", () => reveal(null));
+$("#ans").addEventListener("submit", e => {
+  e.preventDefault();
+  const g = $("#guess").value.trim();
+  if (g) reveal(g);
+});
+$("#board").addEventListener("click", () => showRank("intro"));
+$("#toRank").addEventListener("click", () => showRank("end"));
+$("#rankBack").addEventListener("click", () => show(rankFrom));
+$("#kakao").addEventListener("click", shareKakao);
+$("#save").addEventListener("click", saveImage);
+</script>
+</body>
+</html>
